@@ -25,7 +25,7 @@
     <aside class="w-72 bg-slate-900 text-white flex flex-col shadow-xl z-20">
         <!-- Botón Grande de Agregar -->
         <div class="p-6 pb-4 border-b border-slate-700">
-            <h2 class="text-xl font-bold mb-6 text-center text-slate-200">Control de SKUs</h2>
+            <h2 class="text-xl font-bold mb-6 text-center text-slate-200">Control de Producto a Transferir</h2>
             <button onclick="window.openModal('addModal')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-4 rounded-lg shadow-lg transform transition hover:-translate-y-1 flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -42,7 +42,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Estado de SKUs
+                        Estado de Despachos
                     </button>
                 </li>
                 <li>
@@ -61,12 +61,12 @@
     <main class="flex-1 flex flex-col min-w-0 bg-gray-50">
         <!-- Barra Superior -->
         <header class="bg-white shadow-sm px-8 py-5 flex justify-between items-center z-10">
-            <h1 id="viewTitle" class="text-2xl font-bold text-gray-800">Hoja de Status de SKUs</h1>
+            <h1 id="viewTitle" class="text-2xl font-bold text-gray-800">Estado de despachos a EL SALTO</h1>
             <button onclick="window.openTakeModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg shadow transition-colors flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
-                TOMAR (Despachar)
+                Despachar producto
             </button>
         </header>
 
@@ -126,7 +126,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p class="text-lg">No hay historial de movimientos.</p>
-                    <p class="text-sm">Realiza un despacho usando el botón "TOMAR".</p>
+                    <p class="text-sm">Realiza un despacho usando el botón "Despachar producto".</p>
                 </div>
             </div>
 
@@ -148,16 +148,16 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">SKU Solicitado *</label>
-                        <input type="text" id="addSku" oninput="window.handleSkuInput(event)" required placeholder="Ej. SKU-10045" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase">
+                        <input type="text" id="addSku" oninput="window.handleSkuInput(event)" required placeholder="Ej. 6088750352200" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Descripción del Producto *</label>
-                        <input type="text" id="addDesc" required placeholder="Ej. Monitor 24 pulgadas" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <input type="text" id="addDesc" required placeholder="Ej. HEINZ KETCHUP REGULAR SACHET 8G/1008/96" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
                         <div id="descSuggestion" class="hidden mt-2 p-2 bg-indigo-50 border border-indigo-100 rounded-md text-sm text-indigo-700 cursor-pointer hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-2"></div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad a Solicitar *</label>
-                        <input type="number" id="addQty" required min="1" placeholder="Ej. 50" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <input type="number" id="addQty" required min="1" placeholder="Ej. 30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
                     </div>
                 </div>
                 <div class="mt-8 flex justify-end gap-3">
@@ -176,7 +176,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
-                    Tomar Datos (Despacho)
+                    Despachar producto
                 </h3>
                 <button onclick="window.closeModal('takeModal')" class="text-emerald-200 hover:text-white transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -188,7 +188,7 @@
                     <!-- Folio General -->
                     <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Folio de Despacho *</label>
-                        <input type="text" id="takeFolio" required placeholder="Ej. FOL-2026-001" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-bold uppercase">
+                        <input type="text" id="takeFolio" required placeholder="Ej. 123456789" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-bold uppercase">
                     </div>
 
                     <!-- Lista Dinámica de SKUs a Despachar -->
@@ -204,7 +204,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
                         </svg>
-                        Agregar otro SKU al despacho
+                        Agregar otro SKU al FOLIO
                     </button>
                 </div>
 
