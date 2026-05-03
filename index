@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Despachos de SKUs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos base para scrollbar y animaciones */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .modal { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .modal.active { display: flex; opacity: 1; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex font-sans">
+
+    <!-- Menú Lateral Izquierdo -->
+    <aside class="w-72 bg-slate-900 text-white flex flex-col shadow-xl z-20">
+        <!-- Botón Grande de Agregar -->
+        <div class="p-6 pb-4 border-b border-slate-700">
+            <h2 class="text-xl font-bold mb-6 text-center text-slate-200">Control de SKUs</h2>
+            <button onclick="window.openModal('addModal')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-4 rounded-lg shadow-lg transform transition hover:-translate-y-1 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                AGREGAR DATOS
+            </button>
+        </div>
+
+        <!-- Navegación -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-2 px-4">
+                <li>
+                    <button onclick="window.switchView('status')" id="nav-status" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 text-indigo-400 font-medium transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Estado de SKUs
+                    </button>
+                </li>
+                <li>
+                    <button onclick="window.switchView('history')" id="nav-history" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white font-medium transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Historial de Movimientos
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Área Principal -->
+    <main class="flex-1 flex flex-col min-w-0 bg-gray-50">
+        <!-- Barra Superior -->
+        <header class="bg-white shadow-sm px-8 py-5 flex justify-between items-center z-10">
+            <h1 id="viewTitle" class="text-2xl font-bold text-gray-800">Hoja de Status de SKUs</h1>
+            <button onclick="window.openTakeModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg shadow transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                TOMAR (Despachar)
+            </button>
+        </header>
+
+        <!-- Contenedor de Vistas -->
+        <div class="flex-1 overflow-auto p-8 relative">
+            
+            <!-- Vista: Estado de SKUs -->
+            <div id="view-status" class="fade-in bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU Solicitado</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descripción del Producto</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cant. Total Solicitada</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cant. Actual Enviada</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Progreso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Filas dinámicas aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Estado Vacío -->
+                <div id="statusEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <p class="text-lg">Cargando datos o no hay SKUs registrados.</p>
+                    <p class="text-sm">Usa el botón "AGREGAR DATOS" para comenzar.</p>
+                </div>
+            </div>
+
+            <!-- Vista: Historial de Movimientos -->
+            <div id="view-history" class="hidden fade-in bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha / Hora</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU Tomado</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cantidad Tomada</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Folio de Despacho</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Filas dinámicas aquí -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Estado Vacío -->
+                <div id="historyEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-lg">No hay historial de movimientos.</p>
+                    <p class="text-sm">Realiza un despacho usando el botón "TOMAR".</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ================= MODALES ================= -->
+
+    <!-- Modal: Agregar Nuevos Datos -->
+    <div id="addModal" class="modal fixed inset-0 z-50 items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg">Agregar Nuevos Datos</h3>
+                <button onclick="window.closeModal('addModal')" class="text-indigo-200 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="addForm" onsubmit="window.handleAddSubmit(event)" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">SKU Solicitado *</label>
+                        <input type="text" id="addSku" required placeholder="Ej. SKU-10045" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción del Producto *</label>
+                        <input type="text" id="addDesc" required placeholder="Ej. Monitor 24 pulgadas" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad a Solicitar *</label>
+                        <input type="number" id="addQty" required min="1" placeholder="Ej. 50" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-end gap-3">
+                    <button type="button" onclick="window.closeModal('addModal')" class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow">Guardar Datos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Tomar/Despachar -->
+    <div id="takeModal" class="modal fixed inset-0 z-50 items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-emerald-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Tomar Datos (Despacho)
+                </h3>
+                <button onclick="window.closeModal('takeModal')" class="text-emerald-200 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <form id="takeForm" onsubmit="window.handleTakeSubmit(event)" class="flex flex-col flex-1 overflow-hidden">
+                <div class="p-6 overflow-y-auto flex-1">
+                    <!-- Folio General -->
+                    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Folio de Despacho *</label>
+                        <input type="text" id="takeFolio" required placeholder="Ej. FOL-2026-001" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-bold uppercase">
+                    </div>
+
+                    <!-- Lista Dinámica de SKUs a Despachar -->
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Productos a despachar</label>
+                    </div>
+                    
+                    <div id="takeRowsContainer" class="space-y-3">
+                        <!-- Las filas dinámicas se insertan aquí vía JS -->
+                    </div>
+
+                    <button type="button" onclick="window.addTakeRow()" class="mt-4 flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium text-sm px-2 py-1 rounded hover:bg-emerald-50 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                        Agregar otro SKU al despacho
+                    </button>
+                </div>
+
+                <div class="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                    <button type="button" onclick="window.closeModal('takeModal')" class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Confirmar Despacho
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 translate-y-20 opacity-0 z-[60] flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <span id="toastMsg">Mensaje</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. CONFIGURACIÓN DE FIREBASE ---
+        // Cuando subas esto a GitHub Pages, debes reemplazar estas llaves ("TU_API_KEY", etc.) 
+        // con las que te proporcione la consola de Firebase.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDELvosT6vK-X6C5fEiL1E8jIbAo2cXHc",
+            authDomain: "traxion-despachos.firebaseapp.com",
+            projectId: "traxion-despachos",
+            storageBucket: "traxion-despachos.firebasestorage.app",
+            messagingSenderId: "525946767183",
+            appId: "1:525946767183:web:9b9ae59b4b848f6f0ae73a",
+            measurementId: "G-L3T9N6SDF9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Rutas de las colecciones de la base de datos
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'mi-app';
+        const skusPath = typeof __app_id !== 'undefined' ? `artifacts/${appId}/public/data/skus` : 'skus';
+        const historyPath = typeof __app_id !== 'undefined' ? `artifacts/${appId}/public/data/history` : 'history';
+
+        // --- ESTADO DE LA APLICACIÓN ---
+        let skuData = []; 
+        let historyData = [];
+        let currentUser = null;
+
+        // --- 2. AUTENTICACIÓN Y LISTENERS ---
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) { console.error("Error Autenticando:", err); }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) setupDatabaseListeners();
+        });
+
+        initAuth();
+
+        function setupDatabaseListeners() {
+            if (!currentUser) return;
+
+            // Escuchar cambios en SKUs en tiempo real
+            onSnapshot(collection(db, skusPath), (snapshot) => {
+                skuData = [];
+                snapshot.forEach(doc => skuData.push({ id: doc.id, ...doc.data() }));
+                renderStatusTable();
+            }, (error) => console.error("Error cargando SKUs:", error));
+
+            // Escuchar cambios en Historial en tiempo real
+            onSnapshot(collection(db, historyPath), (snapshot) => {
+                historyData = [];
+                snapshot.forEach(doc => historyData.push({ id: doc.id, ...doc.data() }));
+                // Ordenar en memoria: Más reciente primero
+                historyData.sort((a, b) => b.timestamp - a.timestamp);
+                renderHistoryTable();
+            }, (error) => console.error("Error cargando Historial:", error));
+        }
+
+        // --- NAVEGACIÓN ---
+        window.switchView = function(viewName) {
+            document.getElementById('view-status').classList.add('hidden');
+            document.getElementById('view-history').classList.add('hidden');
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+            const titles = { 'status': 'Hoja de Status de SKUs', 'history': 'Historial de Movimientos' };
+            document.getElementById('viewTitle').innerText = titles[viewName];
+
+            document.getElementById('nav-status').className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 font-medium transition-colors";
+            document.getElementById('nav-history').className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 font-medium transition-colors";
+            
+            document.getElementById(`nav-${viewName}`).className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 text-indigo-400 font-medium transition-colors";
+        };
+
+        // --- UTILIDADES ---
+        window.showToast = function(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        };
+
+        window.copySku = function(sku) {
+            const textarea = document.createElement('textarea');
+            textarea.value = sku;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                window.showToast(`SKU ${sku} copiado al portapapeles`);
+            } catch (err) { console.error('Error al copiar', err); }
+            document.body.removeChild(textarea);
+        };
+
+        // --- MODALES ---
+        window.openModal = function(id) {
+            document.getElementById(id).classList.add('active');
+            if(id === 'addModal') document.getElementById('addSku').focus();
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+            if(id === 'addModal') document.getElementById('addForm').reset();
+            if(id === 'takeModal') {
+                document.getElementById('takeForm').reset();
+                document.getElementById('takeRowsContainer').innerHTML = ''; 
+            }
+        };
+
+        // --- LÓGICA DE AGREGAR SKU (CLOUD) ---
+        window.handleAddSubmit = async function(e) {
+            e.preventDefault();
+            if (!currentUser) { alert("Conectando a base de datos... espera un momento"); return; }
+
+            const skuInput = document.getElementById('addSku').value.trim().toUpperCase();
+            const descInput = document.getElementById('addDesc').value.trim();
+            const qtyInput = parseInt(document.getElementById('addQty').value, 10);
+
+            if (!skuInput || !descInput || isNaN(qtyInput) || qtyInput <= 0) return;
+
+            const timestamp = Date.now();
+            const dateFormatted = new Date().toLocaleDateString('es-ES') + ' ' + new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+
+            const existingSku = skuData.find(item => item.sku === skuInput);
+
+            try {
+                if (existingSku) {
+                    await updateDoc(doc(db, skusPath, existingSku.id), {
+                        requested: existingSku.requested + qtyInput
+                    });
+                    await addDoc(collection(db, historyPath), {
+                        date: dateFormatted, timestamp: timestamp, sku: skuInput,
+                        desc: existingSku.desc, qty: qtyInput, folio: "AGREGADO (Actualizado)", type: 'add'
+                    });
+                } else {
+                    // Usamos el SKU como ID en la base de datos para no duplicarlos
+                    await setDoc(doc(db, skusPath, skuInput), {
+                        sku: skuInput, desc: descInput, requested: qtyInput, sent: 0
+                    });
+                    await addDoc(collection(db, historyPath), {
+                        date: dateFormatted, timestamp: timestamp, sku: skuInput,
+                        desc: descInput, qty: qtyInput, folio: "AGREGADO (Nuevo)", type: 'add'
+                    });
+                }
+                window.closeModal('addModal');
+                window.showToast(`SKU ${skuInput} registrado en la nube exitosamente`);
+            } catch (error) {
+                console.error("Error al guardar:", error);
+                alert("Hubo un error al guardar los datos en la nube.");
+            }
+        };
+
+        // --- LÓGICA DE TOMAR/DESPACHAR (CLOUD) ---
+        window.openTakeModal = function() {
+            if (skuData.length === 0) {
+                alert("No hay SKUs registrados para despachar. Agrega productos primero.");
+                return;
+            }
+            window.openModal('takeModal');
+            window.addTakeRow();
+        };
+
+        window.addTakeRow = function() {
+            const container = document.getElementById('takeRowsContainer');
+            const rowId = 'row-' + Date.now() + Math.random();
+            
+            let optionsHTML = `<option value="">Selecciona un SKU...</option>`;
+            skuData.forEach(item => {
+                const available = item.requested - item.sent;
+                optionsHTML += `<option value="${item.sku}">${item.sku} - ${item.desc} (Pendientes: ${available})</option>`;
+            });
+
+            const rowHTML = `
+                <div id="${rowId}" class="flex gap-3 items-start bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                    <div class="flex-1">
+                        <select required class="sku-select w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                            ${optionsHTML}
+                        </select>
+                    </div>
+                    <div class="w-32">
+                        <input type="number" required min="1" placeholder="Cant." class="qty-input w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                    </div>
+                    <button type="button" onclick="window.removeTakeRow('${rowId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-md transition" title="Eliminar fila">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHTML);
+        };
+
+        window.removeTakeRow = function(rowId) {
+            const container = document.getElementById('takeRowsContainer');
+            if (container.children.length > 1) {
+                document.getElementById(rowId).remove();
+            } else {
+                const row = document.getElementById(rowId);
+                row.querySelector('.sku-select').value = '';
+                row.querySelector('.qty-input').value = '';
+            }
+        };
+
+        window.handleTakeSubmit = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const folio = document.getElementById('takeFolio').value.trim().toUpperCase();
+            if (!folio) return;
+
+            const rows = document.querySelectorAll('#takeRowsContainer > div');
+            const movements = [];
+            
+            rows.forEach(row => {
+                const sku = row.querySelector('.sku-select').value;
+                const qty = parseInt(row.querySelector('.qty-input').value, 10);
+                if (sku && qty > 0) movements.push({ sku, qty });
+            });
+
+            if (movements.length === 0) {
+                alert("Por favor, selecciona al menos un SKU y una cantidad válida."); return;
+            }
+
+            const timestamp = Date.now();
+            const dateFormatted = new Date().toLocaleDateString('es-ES') + ' ' + new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+
+            try {
+                // Procesar cada movimiento
+                for (let i = 0; i < movements.length; i++) {
+                    const mov = movements[i];
+                    const skuObj = skuData.find(s => s.sku === mov.sku);
+                    
+                    if (skuObj) {
+                        const newSent = skuObj.sent + mov.qty;
+                        
+                        // Agregar registro de despacho normal
+                        await addDoc(collection(db, historyPath), {
+                            date: dateFormatted, timestamp: timestamp + i, sku: mov.sku,
+                            desc: skuObj.desc, qty: mov.qty, folio: folio, type: 'take'
+                        });
+
+                        if (newSent >= skuObj.requested) {
+                            // Se completó: Eliminar SKU y mandar historial de CONCLUIDO
+                            await deleteDoc(doc(db, skusPath, skuObj.id));
+                            await addDoc(collection(db, historyPath), {
+                                date: dateFormatted, timestamp: timestamp + i + 100, sku: mov.sku,
+                                desc: skuObj.desc, qty: 0, folio: "CONCLUIDO", type: 'complete'
+                            });
+                        } else {
+                            // Solo actualizar cantidad
+                            await updateDoc(doc(db, skusPath, skuObj.id), { sent: newSent });
+                        }
+                    }
+                }
+                
+                window.closeModal('takeModal');
+                if(document.getElementById('view-history').classList.contains('hidden')) {
+                   window.switchView('history'); 
+                }
+                window.showToast("Despacho sincronizado en la nube");
+            } catch (error) {
+                console.error("Error al despachar:", error);
+                alert("Error al procesar el despacho en la nube.");
+            }
+        };
+
+        // --- RENDERIZADO DE TABLAS ---
+        function renderStatusTable() {
+            const tbody = document.getElementById('statusTableBody');
+            const emptyState = document.getElementById('statusEmptyState');
+            tbody.innerHTML = '';
+
+            if (skuData.length === 0) {
+                emptyState.classList.remove('hidden');
+                tbody.parentElement.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                tbody.parentElement.classList.remove('hidden');
+
+                skuData.forEach(item => {
+                    const percentage = Math.min(Math.round((item.sent / item.requested) * 100), 100);
+                    let colorClass = percentage >= 100 ? 'bg-emerald-500' : (percentage > 0 ? 'bg-amber-400' : 'bg-blue-500');
+
+                    const row = `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                <button onclick="window.copySku('${item.sku}')" class="hover:text-indigo-600 transition-colors flex items-center gap-1 group" title="Copiar al portapapeles">
+                                    ${item.sku}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                </button>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${item.desc}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">${item.requested}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-indigo-600">${item.sent}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="${colorClass} h-2.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 mt-1 inline-block">${percentage}% completado</span>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+        }
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            const emptyState = document.getElementById('historyEmptyState');
+            tbody.innerHTML = '';
+
+            if (historyData.length === 0) {
+                emptyState.classList.remove('hidden');
+                tbody.parentElement.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                tbody.parentElement.classList.remove('hidden');
+
+                historyData.forEach(item => {
+                    const desc = item.desc || '';
+                    let qtyDisplay = '';
+                    let folioDisplay = '';
+
+                    if (item.type === 'add') {
+                        qtyDisplay = `<span class="text-indigo-600 font-bold">+ ${item.qty} <span class="text-xs font-normal text-indigo-400">(Ingreso)</span></span>`;
+                        folioDisplay = `<span class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full font-bold text-xs">${item.folio}</span>`;
+                    } else if (item.type === 'complete') {
+                        qtyDisplay = `<span class="text-gray-400">-</span>`;
+                        folioDisplay = `<span class="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-full font-bold text-xs">CONCLUIDO</span>`;
+                    } else {
+                        qtyDisplay = `<span class="text-emerald-600 font-bold">${item.qty} <span class="text-xs font-normal text-emerald-400">(Despacho)</span></span>`;
+                        folioDisplay = `<span class="px-3 py-1 bg-gray-100 border border-gray-200 rounded-full font-mono text-xs">${item.folio}</span>`;
+                    }
+
+                    const row = `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                ${item.sku} <span class="text-xs text-gray-400 font-normal ml-1">(${desc})</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${qtyDisplay}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                ${folioDisplay}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
