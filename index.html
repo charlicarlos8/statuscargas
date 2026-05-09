@@ -88,7 +88,7 @@
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU Solicitado</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descripción del Producto</th>
                                 <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cant. Total Solicitada</th>
-                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cant. Actual Enviada</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cant. Restante por Enviar</th>
                                 <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Progreso</th>
                             </tr>
                         </thead>
@@ -573,6 +573,9 @@
                     const percentage = Math.min(Math.round((item.sent / item.requested) * 100), 100);
                     let colorClass = percentage >= 100 ? 'bg-emerald-500' : (percentage > 0 ? 'bg-amber-400' : 'bg-blue-500');
 
+                    // NUEVO: Calcular la cantidad restante
+                    const remaining = item.requested - item.sent;
+
                     const row = `
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
@@ -583,7 +586,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${item.desc}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">${item.requested}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-indigo-600">${item.sent}</td>
+                            <!-- MODIFICADO: Mostrar la cantidad restante -->
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-center text-red-600">${remaining}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="w-full bg-gray-200 rounded-full h-2.5">
                                     <div class="${colorClass} h-2.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
